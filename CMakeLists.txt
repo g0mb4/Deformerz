@@ -32,8 +32,21 @@ add_custom_command(
 )
 
 if(WIN32)
-    add_executable(Deformerz ${SRC} ${SRC_RLIMGUI} ${SRC_IMGUI} src/Engine/Rendering/Shaders.h)
+    file(GLOB_RECURSE SRC_LIBTEREP
+        src/LibTerep/*.c
+        src/LibTerep/*.h
+    )
+    file(GLOB_RECURSE SRC_DEFORMERZ
+        src/Engine/*.c
+        src/Engine/*.h
+        src/Main.c
+    )
+
+    add_executable(Deformerz ${SRC_LIBTEREP} ${SRC_DEFORMERZ} ${SRC_RLIMGUI} ${SRC_IMGUI} src/Engine/Rendering/Shaders.h)
     target_include_directories(Deformerz PUBLIC vendor/cimgui/imgui)
+
+    source_group("LibTerep" FILES ${SRC_LIBTEREP})
+    source_group("Deformerz" FILES ${SRC_DEFORMERZ})
 else()
     add_executable(Deformerz ${SRC} ${SRC_RLIMGUI} src/Engine/Rendering/Shaders.h)
 endif()
