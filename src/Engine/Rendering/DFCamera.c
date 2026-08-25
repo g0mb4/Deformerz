@@ -16,6 +16,8 @@ const int xhairSize = 10;
 
 float showInfoCounter = 0;
 
+extern EngineData Engine;
+
 struct DFCamera {
     float mouseSens, camSpeed;
     Vector2 view;
@@ -78,6 +80,9 @@ void DFCamera_EndRender()
         snprintf(postext, 128, "DFCamera DEBUG\n-----------------\nX:%f\nY:%f\nZ:%f\nVX:%f\nVY:%f\n",
                  CAM.rlCam.position.x, CAM.rlCam.position.y, CAM.rlCam.position.z, CAM.view.x, CAM.view.y);
         DrawText(postext, 5, 25, 10, WHITE);
+    }
+    if (Engine.physicsRunning) {
+        DrawText("*SIM*", 5, 10, 10, WHITE);
     }
 }
 

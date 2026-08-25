@@ -22,6 +22,7 @@ void Engine_Loop()
 {
     Engine.dt = GetFrameTime();
     Engine.time += Engine.dt;
+    DFCar_Update();
     DFCamera_Update();
     Renderer_Render();
 }

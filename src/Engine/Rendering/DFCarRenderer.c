@@ -10,10 +10,10 @@ static inline Vector3 ToVector3(float v[3]) { return (Vector3){v[0], v[1], v[2]}
 
 static void RenderPoint(TerepCarPoint* point)
 {
-    Color col;
+    Color col = BLACK;
     switch (point->type) {
     case TEREP_POINT_GEOMETRY:
-        col = WHITE;
+        col = BLACK;
         break;
     case TEREP_POINT_CAMERA:
         col = MAGENTA;
@@ -188,14 +188,25 @@ static void RenderPolygonTextured(TerepCarPolygon* face, TerepCarPoint* points, 
 
 void Renderer_RenderCar(DFCar* dfcar)
 {
+    // TODO(gmb): Update inputs somewhere else
+    if (IsKeyPressed(KEY_P)) {
+        dfcar->renderPhysics = !dfcar->renderPhysics;
+    }
     TerepCar* car = dfcar->car;
     for (size_t i = 0; i < car->pointCount; i++) {
-        if (car->points[i].type == TEREP_POINT_GEOMETRY) continue;
+        if (car->points[i].type == TEREP_POINT_GEOMETRY && !dfcar->renderPhysics) {
+                continue;
+        }
         RenderPoint(&car->points[i]);
     }
     for (size_t i = 0; i < car->physSegmentCount; i++) {
-        if (car->physSegments[i].type == TEREP_SEGMENT_NORMAL) continue;
+        if (car->physSegments[i].type == TEREP_SEGMENT_NORMAL && !dfcar->renderPhysics) {
+            continue;
+        }
         RenderPhysicsSegment(&car->physSegments[i], car->points);
+    }
+    if (dfcar->renderPhysics) {
+        return;
     }
     for (size_t i = 0; i < car->polygonCount; i++) {
         if (car->polygons[i].type == TEREP_POLYGON_TEXTURE) {

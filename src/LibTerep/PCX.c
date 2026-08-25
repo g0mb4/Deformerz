@@ -50,6 +50,7 @@ static PCXData* pcx_load_file(const char* path, uint16_t targ_width, uint16_t ta
         return NULL;
     }
     struct PCXHeader* hdr = calloc(1, PCX_HEADER_SIZE);
+    assert(hdr);
     assert(fread(hdr, PCX_HEADER_SIZE, 1, fp) == 1);
     if (hdr->identifier != 0x0A) {
         fclose(fp);

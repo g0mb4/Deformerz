@@ -3,10 +3,10 @@
 #include "LibTerep/PCX.h"
 #include <stdint.h>
 
-#define TEREP_MAX_POINTS 64
-#define TEREP_MAX_PHYS_SEGMENTS 256
-#define TEREP_MAX_POLYGONS 128
-#define TEREP_MAX_POLYGON_POINTS 5
+#define TEREP_MAX_POINTS 64         // NOTE(gmb): dynamic arrays?
+#define TEREP_MAX_PHYS_SEGMENTS 256 // NOTE(gmb): dynamic arrays?
+#define TEREP_MAX_POLYGONS 128      // NOTE(gmb): dynamic arrays?
+#define TEREP_MAX_POLYGON_POINTS 5  // NOTE(gmb): dynamic arrays?
 
 typedef enum {
     TEREP_POINT_CAMERA = -1,
@@ -89,5 +89,6 @@ typedef struct {
     PCXImage* carTexture;
 } TerepCar;
 
+// TODO(gmb): Add backup texture "TEXTURE.PCX"
 TerepCar* TerepCar_Load(const char* cardat, const char* carpcx);
 void TerepCar_Unload(TerepCar* car);
