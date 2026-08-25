@@ -1,4 +1,5 @@
 #include "TerepCar.h"
+#include "FixedPoint.h"
 
 #include <assert.h>
 #include <stddef.h>
@@ -7,14 +8,13 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define SCALE 10000000.0f
-
 #define GetU8(base, ofs) *(uint8_t*)(base + ofs)
 #define GetU16(base, ofs) *(uint16_t*)(base + ofs)
 #define GetU32(base, ofs) *(uint32_t*)(base + ofs)
 #define GetI8(base, ofs) *(int8_t*)(base + ofs)
 #define GetI16(base, ofs) *(int16_t*)(base + ofs)
 #define GetI32(base, ofs) *(int32_t*)(base + ofs)
+#define GetFP(base, ofs) *(FixedPoint*)(base + ofs)
 
 typedef struct {
     uint8_t* data;
@@ -50,11 +50,11 @@ static void parse_chunk1(TerepCar* car, TerepDat* dat)
     car->pointCount = GetU16(dat->cur, 0);
     dat->cur += 2;
     for (size_t i = 0; i < car->pointCount; i++) {
-        car->points[i].pos[0] = GetI32(dat->cur, 0) / SCALE;
-        car->points[i].pos[1] = GetI32(dat->cur, 8) / SCALE;
-        car->points[i].pos[2] = GetI32(dat->cur, 4) / SCALE;
-        int32_t size = GetI32(dat->cur, 22);
-        car->points[i].size = size > 0 ? size / SCALE : 0.0f;
+        car->points[i].pos[0] = FixedPoint_toFloat(GetFP(dat->cur, 2));
+        car->points[i].pos[1] = FixedPoint_toFloat(GetFP(dat->cur, 10));    
+        car->points[i].pos[2] = FixedPoint_toFloat(GetFP(dat->cur, 6));
+        FixedPoint size = GetFP(dat->cur, 24);
+        car->points[i].size = size > 0 ? FixedPoint_toFloat(size) : 0.0f;
         car->points[i].type = (TerepPointType)GetI16(dat->cur, 26);
         if (car->points[i].type > 2 && car->points[i].type != 65535) {
             printf("LibTerep | ERROR: Failure parsing %s -- Unknown type point: %i\n", dat->name, car->points[i].type);
@@ -72,11 +72,11 @@ static void parse_chunk2(TerepCar* car, TerepDat* dat)
     for (size_t i = 0; i < car->physSegmentCount; i++) {
         car->physSegments[i].pointA = GetU16(dat->cur, 0);
         car->physSegments[i].pointB = GetU16(dat->cur, 2);
-        car->physSegments[i].other1 = GetU16(dat->cur, 4);
-        car->physSegments[i].other2 = GetU16(dat->cur, 6);
+        car->physSegments[i].other1 = FixedPoint_toFloat(GetFP(dat->cur, 4));
+        car->physSegments[i].other2 = FixedPoint_toFloat(GetFP(dat->cur, 6));
         car->physSegments[i].type = GetU16(dat->cur, 8);
-        car->physSegments[i].other3 = GetU16(dat->cur, 10);
-        car->physSegments[i].other4 = GetU16(dat->cur, 12);
+        car->physSegments[i].other3 = FixedPoint_toFloat(GetFP(dat->cur, 10));
+        car->physSegments[i].other4 = FixedPoint_toFloat(GetFP(dat->cur, 12));
         if (car->physSegments[i].type != 0 && car->physSegments[i].type != 1 && car->physSegments[i].type != 4 &&
             car->physSegments[i].type != 6 && car->physSegments[i].type != 10 && car->physSegments[i].type != 12) {
             printf("LibTerep | ERROR: Failure parsing %s -- Unknown type physics segment: %i\n", dat->name,
@@ -158,12 +158,12 @@ static void parse_chunk3(TerepCar* car, TerepDat* dat)
             break;
         case 3:
             // possibly some culling thing, changing these values seems to do render glitches
-            printf("\e[0;32m3:\t");
+            //printf("\e[0;32m3:\t");
             for (size_t i = 0; i < 6; i++) {
-                printf("%d\t", GetU16(dat->cur, i * 2));
+            //    printf("%d\t", GetU16(dat->cur, i * 2));
             }
             dat->cur += 6 * 2;
-            printf("\e[0m\n");
+            //printf("\e[0m\n");
             break;
         case 4:
             parse_chunk3_4coloredpolygon(car, dat);
@@ -175,22 +175,22 @@ static void parse_chunk3(TerepCar* car, TerepDat* dat)
             parse_chunk3_10wheelprops(car, dat);
             break;
         case 69:
-            printf("\e[0;36m69:\t");
+            //printf("\e[0;36m69:\t");
             for (size_t i = 0; i < 19; i++) {
                 // printf("%d\t", data246[i]);
-                printf("%02X ", GetU8(dat->cur, i));
+                //printf("%02X ", GetU8(dat->cur, i));
             }
             dat->cur += 19;
-            printf("\e[0m\n");
+            //printf("\e[0m\n");
             break;
         case 246:
-            printf("\e[0;37m246:\t");
+            //printf("\e[0;37m246:\t");
             for (size_t i = 0; i < 19; i++) {
                 // printf("%d\t", data246[i]);
-                printf("%02X ", GetU8(dat->cur, i));
+                //printf("%02X ", GetU8(dat->cur, i));
             }
             dat->cur += 19;
-            printf("\e[0m\n");
+            //printf("\e[0m\n");
             break;
         default:
             printf("LibTerep | ERROR: Failure parsing %s -- Chunk3 -> Unknwon data block %d\n", dat->name, dtype);
