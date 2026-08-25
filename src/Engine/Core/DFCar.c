@@ -2,13 +2,32 @@
 #include "DFCar.h"
 #include "LibTerep/TerepCar.h"
 #include <raylib.h>
+#include <raymath.h>
 
 #include <assert.h>
 #include <stdlib.h>
 
 extern EngineData Engine;
 
-#define GRAVITY 9.81f
+#define GRAVITY 9.81f   // TODO(gmb): get this value from TEREP2
+
+// TODO(gmb): this is duplicated in DFCarRenderer.c
+static inline Vector3 ToVector3(float v[3]) { return (Vector3){v[0], v[1], v[2]}; }
+
+// NOTE(gmb): i think this is in the .DAT file
+void init_springs(DFCar* dfcar)
+{ 
+    TerepCar* car = dfcar->car;
+    TerepCarPoint* points = car->points;
+
+    for (size_t i = 0; i < car->physSegmentCount; i++) {
+        TerepCarPhysSegment* seg = &car->physSegments[i];
+        Vector3 pA = ToVector3(points[seg->pointA].pos);
+        Vector3 pB = ToVector3(points[seg->pointB].pos);
+        dfcar->springs[i].restLegnth = Vector3Distance(pA, pB); // TODO(gmb): from .DAT
+        dfcar->springs[i].stiffness = 100.0f;                   // TODO(gmb): from .DAT
+    }
+}
 
 DFCar* DFCar_Load()
 {
@@ -24,6 +43,9 @@ DFCar* DFCar_Load()
     });
     dfcar->vel = calloc(dfcar->car->pointCount, sizeof(Vector3));
     assert(dfcar->vel);
+    dfcar->springs = calloc(dfcar->car->physSegmentCount, sizeof(Spring));
+    assert(dfcar->springs);
+    init_springs(dfcar);
     return dfcar;
 }
 void DFCar_Unload(DFCar* dfcar)
@@ -31,12 +53,6 @@ void DFCar_Unload(DFCar* dfcar)
     TerepCar_Unload(dfcar->car);
     UnloadTexture(dfcar->carTex);
     free(dfcar);
-}
-static void update_gravity(size_t id, float dt)
-{
-    // NOTE(gmb): using Explicit-Euler integration for now, but we can switch to Verlet if needed
-    Engine.car->vel[id].y += -GRAVITY * dt;
-    Engine.car->car->points[id].pos[1] += Engine.car->vel[id].y * dt;
 }
 void DFCar_Update()
 { 
@@ -52,7 +68,36 @@ void DFCar_Update()
     assert(car);
     float dt = Engine.dt;
 
+    Vector3 forces[TEREP_MAX_POINTS] = { 0 };
+
+    // apply gravity
     for (size_t i = 0; i < car->pointCount; i++) {
-        update_gravity(i, dt);
+        //forces[i].y += -GRAVITY;
+    }
+
+    // Hookes law
+    // TODO(gmb): damping ?
+    TerepCarPoint* points = car->points;
+    for (size_t i = 0; i < car->physSegmentCount; i++) {
+        TerepCarPhysSegment* seg = &car->physSegments[i];
+        Vector3 pA = ToVector3(points[seg->pointA].pos);
+        Vector3 pB = ToVector3(points[seg->pointB].pos);
+
+        float currentLength = Vector3Distance(pA, pB);
+        float restLength = dfcar->springs[i].restLegnth;
+        Vector3 norm = Vector3Normalize(Vector3Subtract(pB, pA));
+        Vector3 springForce = Vector3Scale(norm, dfcar->springs[i].stiffness * (currentLength - restLength));
+        forces[seg->pointA] = Vector3Add(forces[seg->pointA], springForce);
+        forces[seg->pointB] = Vector3Subtract(forces[seg->pointB], springForce);
+    }
+
+    // NOTE(gmb): using Explicit-Euler integration for now, but we can switch to Verlet if needed
+    for (size_t i = 0; i < car->pointCount; i++) {
+        Engine.car->vel[i] = Vector3Add(dfcar->vel[i], Vector3Scale(forces[i], dt));
+        Vector3 pos = Vector3Add(ToVector3(car->points[i].pos), Vector3Scale(dfcar->vel[i], dt));
+
+        car->points[i].pos[0] = pos.x;
+        car->points[i].pos[1] = pos.y;
+        car->points[i].pos[2] = pos.z;
     }
 }

@@ -6,9 +6,15 @@
 #include <stdbool.h>
 
 typedef struct {
+    float restLegnth;
+    float stiffness;
+} Spring;
+
+typedef struct {
     TerepCar* car;
     Texture2D carTex;
-    Vector3* vel;   // NOTE(gmb): it can be pos_old for Verlet
+    Vector3* vel;       // NOTE(gmb): it can be pos_old for Verlet
+    Spring* springs;    // NOTE(gmb): these should be come from the .DAT file
     bool renderPhysics;
 } DFCar;
 
