@@ -7,8 +7,13 @@
 
 extern EngineData Engine;
 
+// Constants in Terep2:
+// CFG1= 0x0800 (2048)   stiffness?
+// CFG2= 0xf000 (61440)  stiffness?
+// timeStep= 0x78 (120)  ??
+
 // TODO(gmb): get this values from TEREP2/DAT
-#define GRAVITY            9.81f
+#define GRAVITY            9.81f    // 0x1800 (6144)
 #define POINT_MASS         2.0f
 #define STIFFNESS_NORM  10000.0f
 #define STIFFNESS_SUSP  10000.0f
