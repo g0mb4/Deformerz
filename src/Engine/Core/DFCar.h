@@ -5,6 +5,7 @@
 
 #include <stdbool.h>
 
+// TODO(gmb): this must be part of TerepCar
 typedef struct {
     float restLegnth;
     float stiffness;
@@ -20,5 +21,3 @@ typedef struct {
 
 DFCar* DFCar_Load();
 void DFCar_Unload(DFCar* dfcar);
-
-void DFCar_Update();

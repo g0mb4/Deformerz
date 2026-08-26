@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 project(Deformerz C CXX)
 
-file(GLOB_RECURSE SRC src/*.c)
+file(GLOB_RECURSE SRC src/*.c src/*.h)
 file(GLOB SRC_RLIMGUI vendor/rlImGui/*.cpp)
 file(GLOB SRC_IMGUI vendor/cimgui/imgui/*.cpp)
 

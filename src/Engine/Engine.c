@@ -2,6 +2,7 @@
 #include "Engine/Rendering/DFCamera.h"
 #include "LibTerep/PCX.h"
 #include "Rendering/Renderer.h"
+#include "Physics/DFCarPhysics.h"
 #include <raylib.h>
 
 EngineData Engine = {0};
@@ -11,7 +12,7 @@ void Engine_Initialize()
     SetTraceLogLevel(LOG_ERROR);
     // SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     Renderer_Initialize();
-    SetTargetFPS(60);
+    SetTargetFPS(120);
     PCX_EnableGlobalPalette("./data/col.pcx");
     Engine.map = DFMap_Load();
     Engine.car = DFCar_Load();
@@ -22,7 +23,7 @@ void Engine_Loop()
 {
     Engine.dt = GetFrameTime();
     Engine.time += Engine.dt;
-    DFCar_Update();
+    DFCar_UpdatePhysics();
     DFCamera_Update();
     Renderer_Render();
 }

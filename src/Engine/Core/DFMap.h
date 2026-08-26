@@ -12,3 +12,5 @@ typedef struct {
 
 DFMap* DFMap_Load();
 void DFMap_Unload(DFMap* dfmap);
+float DFMap_GetHeightAt(DFMap* dfmap, float x, float z);
+
