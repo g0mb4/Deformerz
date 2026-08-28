@@ -44,6 +44,16 @@ void DFCar_InitSprings(DFCar* dfcar)
 
 void DFCar_UpdatePhysics()
 {
+    DFCar* dfcar = Engine.car;
+    assert(dfcar);
+    TerepCar* car = dfcar->car;
+    assert(car);
+    float dt = Engine.dt;
+
+    for (size_t i = 0; i < car->pointCount; i++) {
+        TerepCarPoint* point = &car->points[i];
+        dfcar->mapHeights[i] = DFMap_GetHeightAt(Engine.map, point->pos[0], point->pos[2]);
+    }
     // TODO(gmb): Update inputs somewhere else
     if (IsKeyPressed(KEY_SPACE)) {
         Engine.physicsRunning = !Engine.physicsRunning;
@@ -52,12 +62,6 @@ void DFCar_UpdatePhysics()
     if (!Engine.physicsRunning) {
         return;
     }
-
-    DFCar* dfcar = Engine.car;
-    assert(dfcar);
-    TerepCar* car = dfcar->car;
-    assert(car);
-    float dt = Engine.dt;
 
     // TODO(gmb): Update inputs somewhere else
     for (size_t i = 0; i < car->pointCount; i++) {
@@ -125,7 +129,7 @@ void DFCar_UpdatePhysics()
     // resolve collisions with the map
     for (size_t i = 0; i < car->pointCount; i++) {
         TerepCarPoint* point = &car->points[i];
-        float mapHeight = DFMap_GetHeightAt(Engine.map, point->pos[0], point->pos[2]);
+        float mapHeight = dfcar->mapHeights[i];
 
         if (point->type == TEREP_POINT_GEOMETRY) {
             if (point->pos[1] < mapHeight) {

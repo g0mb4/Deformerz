@@ -25,6 +25,8 @@ DFCar* DFCar_Load()
     assert(dfcar->vel);
     dfcar->springs = calloc(dfcar->car->physSegmentCount, sizeof(Spring));
     assert(dfcar->springs);
+    dfcar->mapHeights = calloc(dfcar->car->pointCount, sizeof(float));
+    assert(dfcar->mapHeights);
     DFCar_InitSprings(dfcar);
     return dfcar;
 }

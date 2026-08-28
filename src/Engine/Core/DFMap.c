@@ -63,12 +63,17 @@ float DFMap_GetHeightAt(DFMap* dfmap, float x, float z)
     float hx1z0 = dfmap->map->heightmap->data[(mx + 1) + mz * TEREP_MAPSZ] * TMAP_HEIGHT_SCALE;
     float hx0z1 = dfmap->map->heightmap->data[mx + (mz + 1) * TEREP_MAPSZ] * TMAP_HEIGHT_SCALE;
     float hx1z1 = dfmap->map->heightmap->data[(mx + 1) + (mz + 1) * TEREP_MAPSZ] * TMAP_HEIGHT_SCALE;
-        
+
+    // triangles:
+    // hx0z0 -> hx1z0 -> hx0z1
+    // hx1z0 -> hx0z1 -> hx1z1
+
+    // barycentric interpolation
     float height = 0;
-    if (dx + dz <= 1.0f) {
+    if (dz + dx <= 1.0f) {
         height = hx0z0 + dx * (hx1z0 - hx0z0) + dz * (hx0z1 - hx0z0);
     } else {
-        height = hx1z1 * (1.0f - dx) * (hx0z1 - hx1z1) + (1.0f - dz) * (hx1z0 - hx1z1);
+        height = hx1z1 + (1.0f - dx) * (hx0z1 - hx1z1) + (1.0f - dz) * (hx1z0 - hx1z1);
     }
 
     // NOTE(gmb): -5.0f comes from Renderer_RenderMap()
