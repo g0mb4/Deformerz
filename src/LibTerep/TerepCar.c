@@ -7,7 +7,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define SCALE 10000000.0f
+#define MODEL_SCALE 256.0
+#define PHYS_LINK_SCALE 16384.0
 
 #define GetU8(base, ofs) *(uint8_t*)(base + ofs)
 #define GetU16(base, ofs) *(uint16_t*)(base + ofs)
@@ -50,11 +51,11 @@ static void parse_chunk1(TerepCar* car, TerepDat* dat)
     car->pointCount = GetU16(dat->cur, 0);
     dat->cur += 2;
     for (size_t i = 0; i < car->pointCount; i++) {
-        car->points[i].pos[0] = GetI32(dat->cur, 0) / SCALE;
-        car->points[i].pos[1] = GetI32(dat->cur, 8) / SCALE;
-        car->points[i].pos[2] = GetI32(dat->cur, 4) / SCALE;
-        int32_t size = GetI32(dat->cur, 22);
-        car->points[i].size = size > 0 ? size / SCALE : 0.0f;
+        car->points[i].pos[0] = GetI16(dat->cur, 2) / MODEL_SCALE;
+        car->points[i].pos[2] = GetI16(dat->cur, 6) / MODEL_SCALE;
+        car->points[i].pos[1] = GetI16(dat->cur, 10) / MODEL_SCALE;
+        uint16_t size = GetU16(dat->cur, 24);
+        car->points[i].size = size > 0 ? size / MODEL_SCALE : 0.0f;
         car->points[i].type = (TerepPointType)GetI16(dat->cur, 26);
         if (car->points[i].type > 2 && car->points[i].type != 65535) {
             printf("LibTerep | ERROR: Failure parsing %s -- Unknown type point: %i\n", dat->name, car->points[i].type);
@@ -72,11 +73,11 @@ static void parse_chunk2(TerepCar* car, TerepDat* dat)
     for (size_t i = 0; i < car->physSegmentCount; i++) {
         car->physSegments[i].pointA = GetU16(dat->cur, 0);
         car->physSegments[i].pointB = GetU16(dat->cur, 2);
-        car->physSegments[i].other1 = GetU16(dat->cur, 4);
-        car->physSegments[i].other2 = GetU16(dat->cur, 6);
+        car->physSegments[i].length1 = GetU16(dat->cur, 4) / PHYS_LINK_SCALE;
+        car->physSegments[i].length2 = GetU16(dat->cur, 6) / PHYS_LINK_SCALE;
         car->physSegments[i].type = GetU16(dat->cur, 8);
-        car->physSegments[i].other3 = GetU16(dat->cur, 10);
-        car->physSegments[i].other4 = GetU16(dat->cur, 12);
+        car->physSegments[i].lengthMin = GetU16(dat->cur, 10) / PHYS_LINK_SCALE;
+        car->physSegments[i].lengthMax = GetU16(dat->cur, 12) / PHYS_LINK_SCALE;
         if (car->physSegments[i].type != 0 && car->physSegments[i].type != 1 && car->physSegments[i].type != 4 &&
             car->physSegments[i].type != 6 && car->physSegments[i].type != 10 && car->physSegments[i].type != 12) {
             printf("LibTerep | ERROR: Failure parsing %s -- Unknown type physics segment: %i\n", dat->name,

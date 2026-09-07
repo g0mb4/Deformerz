@@ -15,7 +15,6 @@ typedef struct {
     TerepCar* car;
     Texture2D carTex;
     Vector3* vel;       // NOTE(gmb): it can be pos_old for Verlet
-    Spring* springs;    // NOTE(gmb): these should be come from the .DAT file
     float* mapHeights;  // NOTE(gmb): projected height on the map along Y, TerepCar structure?
     bool renderPhysics;
 } DFCar;

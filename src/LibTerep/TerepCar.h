@@ -40,7 +40,10 @@ typedef struct {
 typedef struct {
     TerepPhysSegmentType type;
     uint16_t pointA, pointB;
-    uint16_t other1, other2, other3, other4;
+    float length1;
+    float length2;
+    float lengthMin;
+    float lengthMax;
 } TerepCarPhysSegment;
 
 typedef struct {

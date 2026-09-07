@@ -1,46 +1,21 @@
 #include "DFCarPhysics.h"
-#include "LibTerep/TerepCar.h"
 #include "Engine/Engine.h"
+#include "LibTerep/TerepCar.h"
+#include <assert.h>
 #include <raylib.h>
 #include <raymath.h>
-#include <assert.h>
 
 extern EngineData Engine;
 
-// Constants in Terep2:
-// CFG1= 0x0800 (2048)   stiffness?
-// CFG2= 0xf000 (61440)  stiffness?
-// timeStep= 0x78 (120)  ??
+// DIRECT ASSEMBLY CONSTANTS (In Native Float Units)
+// Gravity subtracted directly from Y-velocity per tick
+#define GRAVITY 0.25f // Scaled for world units (Assembly: 0x0020 / 128)
 
-// TODO(gmb): get this values from TEREP2/DAT
-#define GRAVITY            9.81f    // 0x1800 (6144)
-#define POINT_MASS         2.0f
-#define STIFFNESS_NORM  10000.0f
-#define STIFFNESS_SUSP  10000.0f
-#define DISSIPATION       20.0f
+// Assembly bit-shifts: sar ax, 5 (divide by 32) and sar ax, 3 (divide by 8)
+#define STIFFNESS (1.0f / 32.0f)  // 0.03125f
+#define DISSIPATION (1.0f / 8.0f) // 0.125f
 
-// TODO(gmb): this is duplicated in DFCarRenderer.c
 static inline Vector3 ToVector3(float v[3]) { return (Vector3){v[0], v[1], v[2]}; }
-
-// NOTE(gmb): i think this is in the .DAT file, this function can be removed
-void DFCar_InitSprings(DFCar* dfcar)
-{
-    TerepCar* car = dfcar->car;
-    TerepCarPoint* points = car->points;
-
-    for (size_t i = 0; i < car->physSegmentCount; i++) {
-        TerepCarPhysSegment* seg = &car->physSegments[i];
-        Vector3 pA = ToVector3(points[seg->pointA].pos);
-        Vector3 pB = ToVector3(points[seg->pointB].pos);
-        dfcar->springs[i].restLegnth = Vector3Distance(pA, pB); // TODO(gmb): from .DAT
-
-        if (seg->type == TEREP_SEGMENT_NORMAL) {
-            dfcar->springs[i].stiffness = STIFFNESS_NORM;
-        } else {
-            dfcar->springs[i].stiffness = STIFFNESS_SUSP;
-        }
-    }
-}
 
 void DFCar_UpdatePhysics()
 {
@@ -48,98 +23,86 @@ void DFCar_UpdatePhysics()
     assert(dfcar);
     TerepCar* car = dfcar->car;
     assert(car);
-    float dt = Engine.dt;
 
-    for (size_t i = 0; i < car->pointCount; i++) {
-        TerepCarPoint* point = &car->points[i];
-        dfcar->mapHeights[i] = DFMap_GetHeightAt(Engine.map, point->pos[0], point->pos[2]);
-    }
-    // TODO(gmb): Update inputs somewhere else
     if (IsKeyPressed(KEY_SPACE)) {
         Engine.physicsRunning = !Engine.physicsRunning;
     }
 
-    if (!Engine.physicsRunning) {
+    if (!Engine.physicsRunning)
         return;
-    }
 
-    // TODO(gmb): Update inputs somewhere else
+    // 1. Cache Map Heights
     for (size_t i = 0; i < car->pointCount; i++) {
-        float speed = 1.0f;
         TerepCarPoint* point = &car->points[i];
-
-        if (IsKeyDown(KEY_UP)) {
-            dfcar->vel[i].z -= speed;
-        }
-
-        if (IsKeyDown(KEY_DOWN)) {
-            dfcar->vel[i].z += speed;
-        }
-
-        if (IsKeyDown(KEY_LEFT)) {
-            dfcar->vel[i].x -= speed;
-        }
-
-         if (IsKeyDown(KEY_RIGHT)) {
-            dfcar->vel[i].x += speed;
-        }
-
+        dfcar->mapHeights[i] = DFMap_GetHeightAt(Engine.map, point->pos[0], point->pos[2]);
     }
 
     Vector3 forces[TEREP_MAX_POINTS] = {0};
 
-    // apply gravity
+    // 2. Apply Assembly Gravity
     for (size_t i = 0; i < car->pointCount; i++) {
-        forces[i].y += -POINT_MASS*GRAVITY;
+        forces[i].y -= GRAVITY;
     }
 
-    // Hooke's law
+    // 3. Mass-Spring Segment Loop
     for (size_t i = 0; i < car->physSegmentCount; i++) {
         TerepCarPhysSegment* seg = &car->physSegments[i];
+
         Vector3 pA = ToVector3(car->points[seg->pointA].pos);
         Vector3 pB = ToVector3(car->points[seg->pointB].pos);
 
-        float currentLength = Vector3Distance(pB, pA);
-        float restLength = dfcar->springs[i].restLegnth;
-        Vector3 norm = Vector3Normalize(Vector3Subtract(pB, pA));
-        float springForce = dfcar->springs[i].stiffness * (currentLength - restLength);
-        Vector3 springForceVector = Vector3Scale(norm, springForce);
+        Vector3 delta = Vector3Subtract(pB, pA);
+        float currentLength = Vector3Length(delta);
+        if (currentLength < 0.0001f)
+            continue;
 
-        forces[seg->pointA] = Vector3Add(forces[seg->pointA], springForceVector);
-        forces[seg->pointB] = Vector3Subtract(forces[seg->pointB], springForceVector);
+        Vector3 norm = Vector3Scale(delta, 1.0f / currentLength);
+        float restLength = seg->length1;
+        float displacement = currentLength - restLength;
+
+        // Relative velocity along link axis
+        Vector3 velA = dfcar->vel[seg->pointA];
+        Vector3 velB = dfcar->vel[seg->pointB];
+        Vector3 relVel = Vector3Subtract(velB, velA);
+
+        // Assembly bit-shifts: sar ax, 5 and sar ax, 3
+        float springForce = displacement * STIFFNESS;
+        float dampingForce = Vector3DotProduct(relVel, norm) * DISSIPATION;
+
+        float totalForce = springForce + dampingForce;
+        Vector3 forceVector = Vector3Scale(norm, totalForce);
+
+        // Equal and opposite reactions:
+        // Stretched (totalForce > 0): A pulled TOWARD B (+), B pulled TOWARD A (-)
+        forces[seg->pointA] = Vector3Add(forces[seg->pointA], forceVector);
+        forces[seg->pointB] = Vector3Subtract(forces[seg->pointB], forceVector);
     }
 
-    // damping
+    // 4. Assembly Integration Step (Symplectic Euler)
     for (size_t i = 0; i < car->pointCount; i++) {
-        forces[i] = Vector3Subtract(forces[i], Vector3Scale(dfcar->vel[i], DISSIPATION));
+        // v = v + force
+        dfcar->vel[i] = Vector3Add(dfcar->vel[i], forces[i]);
+
+        // x = x + v (Pos and Vel share same units)
+        car->points[i].pos[0] += dfcar->vel[i].x / 4.0;
+        car->points[i].pos[1] += dfcar->vel[i].y / 4.0;
+        car->points[i].pos[2] += dfcar->vel[i].z / 4.0;
     }
 
-    // NOTE(gmb): using Explicit-Euler integration for now, but we can switch to Verlet if needed
-    for (size_t i = 0; i < car->pointCount; i++) {
-        Vector3 acc = Vector3Scale(forces[i], 1.0f/POINT_MASS);
-        
-        Engine.car->vel[i] = Vector3Add(dfcar->vel[i], Vector3Scale(acc, dt));
-        Vector3 pos = Vector3Add(ToVector3(car->points[i].pos), Vector3Scale(dfcar->vel[i], dt));
-
-        car->points[i].pos[0] = pos.x;
-        car->points[i].pos[1] = pos.y;
-        car->points[i].pos[2] = pos.z;
-    }
-
-    // resolve collisions with the map
+    // 5. Ground Collision Resolution
     for (size_t i = 0; i < car->pointCount; i++) {
         TerepCarPoint* point = &car->points[i];
         float mapHeight = dfcar->mapHeights[i];
+        float minHeight = mapHeight;
 
-        if (point->type == TEREP_POINT_GEOMETRY) {
-            if (point->pos[1] < mapHeight) {
-                point->pos[1] = mapHeight;
-            }
+        if (point->type == TEREP_POINT_WHEEL_FRONT || point->type == TEREP_POINT_WHEEL_REAR) {
+            minHeight += point->size;
         }
 
-        if ((point->type == TEREP_POINT_WHEEL_FRONT || point->type == TEREP_POINT_WHEEL_REAR)) {
-            if (point->pos[1] - point->size < mapHeight) {
-                point->pos[1] = mapHeight + point->size;
+        if (point->pos[1] < minHeight) {
+            point->pos[1] = minHeight;
+            if (dfcar->vel[i].y < 0.0f) {
+                dfcar->vel[i].y = 0.0f;
             }
         }
     }

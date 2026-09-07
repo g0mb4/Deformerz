@@ -17,7 +17,7 @@ void Renderer_Initialize()
     // InitWindow(1920, 1080, GAME_WINDOW_TITLE);
     InitWindow(RENDER_W * RENDER_SCL, RENDER_H * RENDER_SCL, GAME_WINDOW_TITLE);
     rendertex = LoadRenderTexture(RENDER_W, RENDER_H);
-    SetTargetFPS(60);
+    SetTargetFPS(120);
     rlImGuiSetup(true);
 }
 void Renderer_Destroy()
