@@ -37,18 +37,18 @@ This chunk contains an array of 3D space points in XZY format. Some points are s
 
 #### Point Definition
 
-| Offset | Datatype | Description                                                     |
-| ------ | -------- | --------------------------------------------------------------- |
-| 0      | `int16`  | Unknown value                                                   |
-| 2      | `int16`  | X position value of the point                                   |
-| 4      | `int16`  | Unknown value                                                   |
-| 6      | `int16`  | Z position value of the point                                   |
-| 8      | `int16`  | Unknown value                                                   |
-| 10     | `int16`  | Y position value of the point                                   |
-| 26     | `int16`  | Size value of the point (only for camera and wheel type points) |
-| 28     | `int16`  | Point type designator (see table below)                         |
+| Offset | Datatype | Description                                                         |
+| ------ | -------- | ------------------------------------------------------------------- |
+| 0      | `int16`  | Unknown value                                                       |
+| 2      | `int16`  | X position value of the point                                       |
+| 4      | `int16`  | Unknown value                                                       |
+| 6      | `int16`  | Z position value of the point                                       |
+| 8      | `int16`  | Unknown value                                                       |
+| 10     | `int16`  | Y position value of the point                                       |
+| 12     | 12 bytes | Seems to be just padding which may be used for runtime data storage |
+| 24     | `int16`  | Size value of the point (only for camera and wheel type points)     |
+| 26     | `int16`  | Point type designator (see table below)                             |
 
-The point contains 12 null bytes which appear to be padding or also used for runtime data storage.
 
 #### Point Types
 
@@ -155,7 +155,8 @@ This item is variable length based on the amount of points defined in the polygo
 | 3      | `uint16` | UV X coordinate (0 - MAX_UINT16 (65535)). To map it to usual 0-1 coordinates, divide the value by 65535 |
 | 5      | `uint16` | UV Y coordinate (0 - MAX_UINT16 (65535)). To map it to usual 0-1 coordinates, divide the value by 65535 |
 
-Sidenote, the game bundles textures with a size of 320x200 but discards the 64 pixels on the right side as the texture is constrained to 256 pixels wide.
+> [!NOTE]
+> Sidenote, the game bundles textures with a size of 320x200 but discards the 64 pixels on the right side as the texture is constrained to 256 pixels wide.
 
 ##### Wheel Properties Item (ID 10 - 0x0A)
 
